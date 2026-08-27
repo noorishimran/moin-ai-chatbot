@@ -108,6 +108,7 @@ class KnowledgeChunk(Base):
     tags: Mapped[str | None] = mapped_column(String(512), nullable=True)
     intents: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    embedding: Mapped[list[float]] = mapped_column(Vector(1536))
+       # Gemini text-embedding-004 = 768 dimensions
+    embedding: Mapped[list[float]] = mapped_column(Vector(768))
 
     document: Mapped["KnowledgeDocument"] = relationship(back_populates="chunks")
