@@ -16,11 +16,10 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/moin_chatbot"
 
-    llm_provider: str = "openai"
-    openai_api_key: str | None = None
-    anthropic_api_key: str | None = None
-    model_name: str = "gpt-4o-mini"
-    embedding_model: str = "text-embedding-3-small"
+    llm_provider: str = "gemini"
+    gemini_api_key: str | None = None
+    model_name: str = "gemini-1.5-flash"
+    embedding_model: str = "text-embedding-004"
 
     email_provider: str = "smtp"
     smtp_host: str | None = None
