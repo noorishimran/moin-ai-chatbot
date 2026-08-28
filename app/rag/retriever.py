@@ -14,9 +14,8 @@ from app.rag.embeddings import embed_text
 
 settings = get_settings()
 
-DEFAULT_TOP_K = 5
-DEFAULT_MIN_SIMILARITY = 0.55
-
+DEFAULT_TOP_K = settings.rag_top_k
+DEFAULT_MIN_SIMILARITY = settings.rag_min_similarity
 
 @dataclass
 class RetrievedChunk:
@@ -43,8 +42,10 @@ async def retrieve(
     category: str | None = None,
 ) -> list[RetrievedChunk]:
     prepared_query = normalize_query(query, recent_context)
-    query_vector = embed_text(prepared_query, task_type="retrieval_query")
-
+    query_vector = embed_text(
+    prepared_query,
+    task_type="RETRIEVAL_QUERY",
+)
     async with AsyncSessionLocal() as session:
         stmt = (
             select(

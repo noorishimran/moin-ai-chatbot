@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     lead_email_to: str = "info@moinsystemsai.com"
 
+    rag_top_k: int = 5
+    rag_min_similarity: float = 0.65
     rate_limit_per_minute: int = 30
 
     @property
