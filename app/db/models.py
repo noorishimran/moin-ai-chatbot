@@ -54,6 +54,13 @@ class ChatSession(Base):
         default="active",
     )
 
+    # 5.4 — deterministic lead-capture state, tracked by the backend,
+    # independent from anything the LLM says. not_started / collecting / complete
+    lead_capture_state: Mapped[str] = mapped_column(
+        String(32),
+        default="not_started",
+    )
+
     messages: Mapped[list["ChatMessage"]] = relationship(
         back_populates="session",
     )
