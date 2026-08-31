@@ -1,20 +1,38 @@
 """
-5.10 — lead capture endpoint.
+5.10 lead capture endpoint + 6.2-6.5 email notification wiring.
 """
+
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import ChatSession, LeadSubmission
+from app.core.config import get_settings
+from app.core.rate_limit import enforce_rate_limit
+from app.db.models import ChatMessage, ChatSession, EmailNotification, LeadSubmission
 from app.db.session import get_db
+from app.email.service import send_lead_notification
+from app.email.templates import build_lead_notification_email
 from app.leads.state_machine import mark_complete
 from app.schemas.lead import LeadCaptureRequest, LeadCaptureResponse
 
 router = APIRouter()
+settings = get_settings()
 
 
-@router.post("/lead-capture", response_model=LeadCaptureResponse)
+async def _last_user_question(db: AsyncSession, session_id) -> str | None:
+    result = await db.execute(
+        select(ChatMessage.content)
+        .where(ChatMessage.session_id == session_id, ChatMessage.role == "user")
+        .order_by(ChatMessage.created_at.desc())
+        .limit(1)
+    )
+    row = result.first()
+    return row[0] if row else None
+
+
+@router.post("/lead-capture", response_model=LeadCaptureResponse, dependencies=[Depends(enforce_rate_limit)])
 async def capture_lead(payload: LeadCaptureRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ChatSession).where(ChatSession.session_token == payload.session_token))
     session = result.scalar_one_or_none()
@@ -38,8 +56,36 @@ async def capture_lead(payload: LeadCaptureRequest, db: AsyncSession = Depends(g
         source_page=payload.source_page,
     )
     db.add(lead)
-
     await mark_complete(db, session)
+    await db.flush()
+
+    user_question = await _last_user_question(db, session.id)
+    subject, body = build_lead_notification_email(
+        full_name=lead.full_name,
+        email=lead.email,
+        contact_number=lead.contact_number,
+        service_interest=lead.service_interest,
+        company_name=lead.company_name,
+        project_summary=lead.project_summary,
+        timeline=lead.timeline,
+        budget_range=lead.budget_range,
+        source_page=lead.source_page,
+        user_question=user_question,
+        conversation_summary=None,
+    )
+
+    send_result = await send_lead_notification(subject, body)
+
+    notification = EmailNotification(
+        lead_id=lead.id,
+        recipient=settings.lead_email_to,
+        subject=subject,
+        status="sent" if send_result.success else "failed",
+        provider_message_id=send_result.provider_message_id,
+        error_message=send_result.error,
+        sent_at=datetime.now(timezone.utc) if send_result.success else None,
+    )
+    db.add(notification)
     await db.commit()
 
     return LeadCaptureResponse(lead_id=str(lead.id))

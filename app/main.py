@@ -7,9 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import chat, health, leads, sessions
 from app.core.config import get_settings
+from app.core.logging_setup import RequestLoggingMiddleware, setup_logging
+from app.core.size_limit import BodySizeLimitMiddleware
 
 
 settings = get_settings()
+setup_logging()
 
 
 app = FastAPI(
@@ -18,7 +21,13 @@ app = FastAPI(
     description="RAG-powered chatbot backend for MoinSystems AI",
 )
 
+# 6.10 — reject oversized bodies before anything else runs
+app.add_middleware(BodySizeLimitMiddleware)
 
+# 6.11 — structured request logging
+app.add_middleware(RequestLoggingMiddleware)
+
+# 6.8 — CORS: only origins listed in .env (ALLOWED_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
