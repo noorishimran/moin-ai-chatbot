@@ -1,0 +1,269 @@
+.maiw-root {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.maiw-launcher {
+  background: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.maiw-launcher:focus-visible,
+.maiw-close-btn:focus-visible,
+.maiw-send-btn:focus-visible,
+.maiw-btn-primary:focus-visible,
+.maiw-btn-secondary:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #ffb400;
+  outline-offset: 2px;
+}
+
+.maiw-panel {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  height: 520px;
+  max-height: calc(100vh - 100px);
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.maiw-header {
+  background: #0f4c81;
+  color: white;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.maiw-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.maiw-message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.maiw-empty-state {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.maiw-message {
+  display: flex;
+}
+
+.maiw-message-user {
+  justify-content: flex-end;
+}
+
+.maiw-message-assistant {
+  justify-content: flex-start;
+}
+
+.maiw-bubble {
+  max-width: 78%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.maiw-message-user .maiw-bubble {
+  background: #0f4c81;
+  color: white;
+  border-bottom-right-radius: 3px;
+}
+
+.maiw-message-assistant .maiw-bubble {
+  background: #f0f1f3;
+  color: #222;
+  border-bottom-left-radius: 3px;
+}
+
+.maiw-failed-tag {
+  font-size: 11px;
+  color: #c0392b;
+  margin-left: 6px;
+  align-self: center;
+}
+
+.maiw-typing span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 3px;
+  background: #999;
+  border-radius: 50%;
+  animation: maiw-blink 1.2s infinite;
+}
+.maiw-typing span:nth-child(2) { animation-delay: 0.2s; }
+.maiw-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes maiw-blink {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+
+.maiw-error-banner {
+  background: #fdecea;
+  color: #b71c1c;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.maiw-composer {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.maiw-composer textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  max-height: 80px;
+}
+
+.maiw-send-btn {
+  background: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.maiw-send-btn:disabled {
+  background: #a9bcc9;
+  cursor: not-allowed;
+}
+
+.maiw-lead-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f7f9fb;
+  border: 1px solid #dfe6ec;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.maiw-lead-intro {
+  margin: 0 0 6px;
+  color: #333;
+}
+
+.maiw-lead-form label {
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.maiw-lead-form input {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.maiw-lead-form input[aria-invalid="true"] {
+  border-color: #c0392b;
+}
+
+.maiw-field-error {
+  color: #c0392b;
+  font-size: 12px;
+}
+
+.maiw-lead-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.maiw-btn-primary {
+  background: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.maiw-btn-secondary {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.maiw-lead-success {
+  background: #eafaf1;
+  color: #1e7e34;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.maiw-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+@media (max-width: 480px) {
+  .maiw-root {
+    bottom: 0;
+    right: 0;
+    left: 0;
+  }
+  .maiw-panel {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .maiw-launcher {
+    margin: 16px;
+  }
+}
