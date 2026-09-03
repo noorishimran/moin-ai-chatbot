@@ -177,15 +177,9 @@ async def generate_chat_response(
     # -------------------------------------------------
     # 9. Determine lead / conversation state
     # -------------------------------------------------
-    if intent in {
-        "pricing",
-        "high_intent",
-    }:
+    if intent == "high_intent":
         lead_state = "pending"
-        next_state = (
-            "lead_capture_pending"
-        )
-
+        next_state = "lead_capture_pending"
     else:
         lead_state = "inactive"
         next_state = "general_query"

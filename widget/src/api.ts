@@ -7,7 +7,7 @@ import {
   type SessionCreateResponse,
 } from "./types";
 
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE ="https://moin-ai-chatbot-production-2cf8.up.railway.app/api/v1";
 
 const REQUEST_TIMEOUT_MS = 60000;
 const MAX_RETRIES = 2;
