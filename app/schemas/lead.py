@@ -55,12 +55,22 @@ class LeadCaptureRequest(BaseModel):
     @classmethod
     def _check_service_interest(cls, v: str) -> str:
         v = v.strip()
+
         if is_placeholder_text(v):
-            raise ValueError("service_interest looks like a placeholder, not a real answer.")
+            raise ValueError(
+                "service_interest looks like a placeholder, not a real answer."
+            )
+
         return v
 
 
 class LeadCaptureResponse(BaseModel):
     lead_id: str
-    status: str = "saved"
-    message: str = "Thanks! The MoinSystems AI team has received your details and will follow up soon."
+
+    # saved | saved_email_failed
+    status: str
+
+    # sent | failed
+    email_status: str
+
+    message: str

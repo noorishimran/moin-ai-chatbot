@@ -48,15 +48,28 @@ HIGH_INTENT_KEYWORDS = [
     "hire",
     "hire you",
     "start a project",
+    "start my project",
+    "start development",
+    "get started",
+    "ready to start",
+    "ready to hire",
     "build for me",
     "develop for me",
     "need a developer",
     "need an app",
     "need a chatbot",
     "work with you",
+    "want to work with you",
     "want to build",
     "want to hire",
     "need your team",
+    "contact me",
+    "reach out to me",
+    "contact me about",
+    "reach out",
+    "start working",
+    "move forward",
+    "proceed with the project",
 ]
 
 
@@ -117,8 +130,8 @@ def detect_intent(
 
     Possible values:
     - sensitive_data_request
-    - human_handoff
     - high_intent
+    - human_handoff
     - pricing
     - service_inquiry
     - general
@@ -129,35 +142,36 @@ def detect_intent(
 
     text = message.lower().strip()
 
-    # Safety-critical requests must be handled before
-    # retrieval or LLM generation.
+    # 1. Safety-critical requests always take top priority.
     if _contains_keyword(
         text,
         SENSITIVE_KEYWORDS,
     ):
         return "sensitive_data_request"
 
-    # Explicit human, legal, contract, or security requests
-    # should move to human handoff.
-    if _contains_keyword(
-        text,
-        HUMAN_HANDOFF_KEYWORDS,
-    ):
-        return "human_handoff"
-
-    # High buying intent takes priority over simple pricing.
+    # 2. Commercial / buying intent should trigger
+    # the structured lead-capture form.
     if _contains_keyword(
         text,
         HIGH_INTENT_KEYWORDS,
     ):
         return "high_intent"
 
+    # 3. Explicit human/legal/security handoff.
+    if _contains_keyword(
+        text,
+        HUMAN_HANDOFF_KEYWORDS,
+    ):
+        return "human_handoff"
+
+    # 4. Pricing alone should NOT automatically trigger a lead form.
     if _contains_keyword(
         text,
         PRICING_KEYWORDS,
     ):
         return "pricing"
 
+    # 5. General service inquiry.
     if _contains_keyword(
         text,
         SERVICE_KEYWORDS,

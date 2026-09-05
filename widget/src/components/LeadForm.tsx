@@ -34,10 +34,18 @@ export function LeadForm({
     service_interest: "",
   });
 
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<
+    Record<string, string>
+  >({});
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [submitted, setSubmitted] =
+    useState(false);
+
+  const [generalError, setGeneralError] =
+    useState<string | null>(null);
 
 
   function updateField(
@@ -55,6 +63,7 @@ export function LeadForm({
       }
 
       const next = { ...prev };
+
       delete next[field];
 
       return next;
@@ -64,25 +73,33 @@ export function LeadForm({
   }
 
 
-  function validateClientSide(): Record<string, string> {
+  function validateClientSide(): Record<
+    string,
+    string
+  > {
     const errors: Record<string, string> = {};
 
     if (form.full_name.trim().length < 2) {
-      errors.full_name = "Please enter your full name.";
+      errors.full_name =
+        "Please enter your full name.";
     }
 
     if (!EMAIL_PATTERN.test(form.email.trim())) {
-      errors.email = "Please enter a valid email address.";
+      errors.email =
+        "Please enter a valid email address.";
     }
 
     if (
-      form.contact_number.replace(/\D/g, "").length < 7
+      form.contact_number.replace(/\D/g, "")
+        .length < 7
     ) {
       errors.contact_number =
         "Please enter a valid phone number.";
     }
 
-    if (form.service_interest.trim().length < 2) {
+    if (
+      form.service_interest.trim().length < 2
+    ) {
       errors.service_interest =
         "Please tell us what you're interested in.";
     }
@@ -99,9 +116,12 @@ export function LeadForm({
     setGeneralError(null);
     setFieldErrors({});
 
-    const clientErrors = validateClientSide();
+    const clientErrors =
+      validateClientSide();
 
-    if (Object.keys(clientErrors).length > 0) {
+    if (
+      Object.keys(clientErrors).length > 0
+    ) {
       setFieldErrors(clientErrors);
       return;
     }
@@ -109,23 +129,38 @@ export function LeadForm({
     setSubmitting(true);
 
     try {
-      await captureLead({
+      const result = await captureLead({
         session_token: sessionToken,
         full_name: form.full_name.trim(),
         email: form.email.trim(),
-        contact_number: form.contact_number.trim(),
-        service_interest: form.service_interest.trim(),
+        contact_number:
+          form.contact_number.trim(),
+        service_interest:
+          form.service_interest.trim(),
       });
 
-      setSubmitted(true);
+      if (result.email_status === "sent") {
+        setSubmitted(true);
+        return;
+      }
+
+      setGeneralError(
+        result.message ||
+          "Your details were saved, but the team notification email could not be sent right now."
+      );
     } catch (error) {
       if (
         error instanceof ApiError &&
         error.fieldErrors.length > 0
       ) {
-        const errors: Record<string, string> = {};
+        const errors: Record<
+          string,
+          string
+        > = {};
 
-        for (const fieldError of error.fieldErrors) {
+        for (
+          const fieldError of error.fieldErrors
+        ) {
           errors[fieldError.field] =
             fieldError.message;
         }
@@ -152,8 +187,10 @@ export function LeadForm({
         aria-live="polite"
       >
         <p>
-          Thanks! Your details have been submitted successfully.
-          The MoinSystems AI team will be in touch shortly.
+          Thanks! Your details were
+          submitted successfully and the
+          MoinSystems AI team has been
+          notified.
         </p>
 
         <button
@@ -175,7 +212,8 @@ export function LeadForm({
       noValidate
     >
       <p className="maiw-lead-intro">
-        Share your details and the team will follow up.
+        Share your details and the team
+        will follow up.
       </p>
 
       <label htmlFor="maiw-full-name">
@@ -192,7 +230,9 @@ export function LeadForm({
           )
         }
         disabled={submitting}
-        aria-invalid={!!fieldErrors.full_name}
+        aria-invalid={
+          !!fieldErrors.full_name
+        }
         aria-describedby={
           fieldErrors.full_name
             ? "maiw-full-name-err"
@@ -210,6 +250,7 @@ export function LeadForm({
         </span>
       )}
 
+
       <label htmlFor="maiw-email">
         Email
       </label>
@@ -225,7 +266,9 @@ export function LeadForm({
           )
         }
         disabled={submitting}
-        aria-invalid={!!fieldErrors.email}
+        aria-invalid={
+          !!fieldErrors.email
+        }
         aria-describedby={
           fieldErrors.email
             ? "maiw-email-err"
@@ -242,6 +285,7 @@ export function LeadForm({
           {fieldErrors.email}
         </span>
       )}
+
 
       <label htmlFor="maiw-contact-number">
         Phone number
@@ -278,6 +322,7 @@ export function LeadForm({
         </span>
       )}
 
+
       <label htmlFor="maiw-service-interest">
         What are you interested in?
       </label>
@@ -308,9 +353,12 @@ export function LeadForm({
           className="maiw-field-error"
           role="alert"
         >
-          {fieldErrors.service_interest}
+          {
+            fieldErrors.service_interest
+          }
         </span>
       )}
+
 
       {generalError && (
         <div
@@ -320,6 +368,7 @@ export function LeadForm({
           {generalError}
         </div>
       )}
+
 
       <div className="maiw-lead-actions">
         <button

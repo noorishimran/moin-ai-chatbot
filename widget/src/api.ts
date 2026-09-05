@@ -10,7 +10,7 @@ import {
 const API_BASE ="https://moin-ai-chatbot-production-2cf8.up.railway.app/api/v1";
 
 const REQUEST_TIMEOUT_MS = 60000;
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 1;
 
 async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
   const controller = new AbortController();
