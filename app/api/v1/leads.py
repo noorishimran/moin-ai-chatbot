@@ -1,7 +1,10 @@
+# app/api/v1/leads.py
+
 """
-5.10 lead capture endpoint + 6.2-6.5 email notification wiring.
+Lead capture endpoint + email notification wiring.
 """
 
+import asyncio
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -25,6 +28,8 @@ from app.schemas.lead import LeadCaptureRequest, LeadCaptureResponse
 
 router = APIRouter()
 settings = get_settings()
+
+EMAIL_TIMEOUT_SECONDS = 10
 
 
 async def _last_user_question(
@@ -70,8 +75,7 @@ async def capture_lead(
             detail="Unknown session_token. Create a session first.",
         )
 
-    # If a lead already exists for this session,
-    # treat it as a successful/idempotent submission.
+    # Idempotent duplicate handling.
     existing_result = await db.execute(
         select(LeadSubmission).where(
             LeadSubmission.session_id == session.id
@@ -85,7 +89,7 @@ async def capture_lead(
             lead_id=str(existing_lead.id)
         )
 
-    # Create a new lead.
+    # Create lead.
     lead = LeadSubmission(
         session_id=session.id,
         full_name=payload.full_name,
@@ -103,8 +107,7 @@ async def capture_lead(
 
     await mark_complete(db, session)
 
-    # Flush so lead.id is available before creating
-    # the email notification record.
+    # Flush so lead.id exists.
     await db.flush()
 
     user_question = await _last_user_question(
@@ -126,21 +129,43 @@ async def capture_lead(
         conversation_summary=None,
     )
 
-    send_result = await send_lead_notification(
-        subject,
-        body,
-    )
+    # Try email, but do not let SMTP block the request indefinitely.
+    try:
+        send_result = await asyncio.wait_for(
+            send_lead_notification(
+                subject,
+                body,
+            ),
+            timeout=EMAIL_TIMEOUT_SECONDS,
+        )
+
+        email_success = send_result.success
+        provider_message_id = send_result.provider_message_id
+        email_error = send_result.error
+
+    except asyncio.TimeoutError:
+        email_success = False
+        provider_message_id = None
+        email_error = (
+            f"Email notification timed out after "
+            f"{EMAIL_TIMEOUT_SECONDS} seconds."
+        )
+
+    except Exception as exc:
+        email_success = False
+        provider_message_id = None
+        email_error = str(exc)
 
     notification = EmailNotification(
         lead_id=lead.id,
         recipient=settings.lead_email_to,
         subject=subject,
-        status="sent" if send_result.success else "failed",
-        provider_message_id=send_result.provider_message_id,
-        error_message=send_result.error,
+        status="sent" if email_success else "failed",
+        provider_message_id=provider_message_id,
+        error_message=email_error,
         sent_at=(
             datetime.now(timezone.utc)
-            if send_result.success
+            if email_success
             else None
         ),
     )

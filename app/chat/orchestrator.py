@@ -1,3 +1,5 @@
+# app/chat/orchestrator.py
+
 """
 Chat orchestration service.
 
@@ -27,11 +29,6 @@ from app.rag.retriever import retrieve
 
 logger = logging.getLogger(__name__)
 
-
-# Implementation choice:
-# The milestone requires recent history rather than unlimited
-# conversation history. The document does not prescribe a
-# specific number.
 MAX_HISTORY_MESSAGES = 6
 
 
@@ -52,6 +49,13 @@ SENSITIVE_DATA_MESSAGE = (
 HUMAN_HANDOFF_MESSAGE = (
     "Of course. This is best handled by the MoinSystems AI team. "
     "I can direct you to the team for further assistance."
+)
+
+
+HIGH_INTENT_MESSAGE = (
+    "Absolutely. Please use the short form below to share your contact "
+    "details and project requirements. The MoinSystems AI team can then "
+    "follow up with you directly."
 )
 
 
@@ -94,15 +98,25 @@ async def generate_chat_response(
         }
 
     # -------------------------------------------------
-    # 4. Limit and validate conversation history
+    # 4. High-intent lead capture
+    # Do NOT ask for lead details inside the LLM chat.
+    # The frontend form is the single structured capture path.
     # -------------------------------------------------
-    raw_history = (
-        history or []
-    )[-MAX_HISTORY_MESSAGES:]
+    if intent == "high_intent":
+        return {
+            "answer": HIGH_INTENT_MESSAGE,
+            "session_id": session_id,
+            "intent": intent,
+            "next_state": "lead_capture_pending",
+            "used_rag": False,
+        }
 
-    recent_history: list[
-        dict[str, str]
-    ] = []
+    # -------------------------------------------------
+    # 5. Limit and validate conversation history
+    # -------------------------------------------------
+    raw_history = (history or [])[-MAX_HISTORY_MESSAGES:]
+
+    recent_history: list[dict[str, str]] = []
 
     for item in raw_history:
         role = item.get("role")
@@ -121,7 +135,7 @@ async def generate_chat_response(
             )
 
     # -------------------------------------------------
-    # 5. Build small retrieval conversation context
+    # 6. Build small retrieval conversation context
     # -------------------------------------------------
     recent_context = None
 
@@ -137,7 +151,7 @@ async def generate_chat_response(
         )
 
     # -------------------------------------------------
-    # 6. Retrieve approved company knowledge
+    # 7. Retrieve approved company knowledge
     # -------------------------------------------------
     chunks = await retrieve(
         query=message,
@@ -145,7 +159,7 @@ async def generate_chat_response(
     )
 
     # -------------------------------------------------
-    # 7. Unknown / insufficient-context handling
+    # 8. Unknown / insufficient-context handling
     # -------------------------------------------------
     if not chunks:
         return {
@@ -157,14 +171,10 @@ async def generate_chat_response(
         }
 
     # -------------------------------------------------
-    # 8. Build deterministic RAG context
+    # 9. Build deterministic RAG context
     # -------------------------------------------------
-    knowledge_context = build_context(
-        chunks
-    )
+    knowledge_context = build_context(chunks)
 
-    # Defensive check in case context building
-    # unexpectedly returns no usable text.
     if not knowledge_context.strip():
         return {
             "answer": UNKNOWN_FALLBACK,
@@ -175,17 +185,13 @@ async def generate_chat_response(
         }
 
     # -------------------------------------------------
-    # 9. Determine lead / conversation state
+    # 10. Normal conversation state
     # -------------------------------------------------
-    if intent == "high_intent":
-        lead_state = "pending"
-        next_state = "lead_capture_pending"
-    else:
-        lead_state = "inactive"
-        next_state = "general_query"
+    lead_state = "inactive"
+    next_state = "general_query"
 
     # -------------------------------------------------
-    # 10. Build layered system prompt
+    # 11. Build layered system prompt
     # -------------------------------------------------
     system_prompt = build_system_prompt(
         knowledge_context=knowledge_context,
@@ -194,11 +200,9 @@ async def generate_chat_response(
     )
 
     # -------------------------------------------------
-    # 11. Prepare recent conversation for the LLM
+    # 12. Prepare recent conversation for the LLM
     # -------------------------------------------------
-    llm_messages: list[
-        dict[str, str]
-    ] = list(recent_history)
+    llm_messages: list[dict[str, str]] = list(recent_history)
 
     llm_messages.append(
         {
@@ -208,7 +212,7 @@ async def generate_chat_response(
     )
 
     # -------------------------------------------------
-    # 12. Generate grounded response
+    # 13. Generate grounded response
     # -------------------------------------------------
     try:
         provider = get_llm_provider()
@@ -236,7 +240,7 @@ async def generate_chat_response(
         }
 
     # -------------------------------------------------
-    # 13. Protect against an empty model response
+    # 14. Protect against empty response
     # -------------------------------------------------
     if not answer or not answer.strip():
         logger.warning(
@@ -256,7 +260,7 @@ async def generate_chat_response(
         }
 
     # -------------------------------------------------
-    # 14. Return structured API result
+    # 15. Return structured API result
     # -------------------------------------------------
     return {
         "answer": answer.strip(),
