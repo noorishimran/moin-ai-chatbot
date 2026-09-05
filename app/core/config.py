@@ -4,7 +4,10 @@ Central application configuration.
 
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
 
 
 class Settings(BaseSettings):
@@ -20,7 +23,8 @@ class Settings(BaseSettings):
     app_secret: str = "change-me-in-env"
 
     database_url: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/moin_chatbot"
+        "postgresql+asyncpg://postgres:postgres@"
+        "localhost:5432/moin_chatbot"
     )
 
     llm_provider: str = "gemini"
@@ -28,11 +32,19 @@ class Settings(BaseSettings):
     model_name: str = "gemini-1.5-flash"
     embedding_model: str = "text-embedding-004"
 
-    email_provider: str = "smtp"
+    # Email
+    email_provider: str = "mailtrap_api"
+
+    # Existing SMTP settings can stay for compatibility.
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_username: str | None = None
     smtp_password: str | None = None
+
+    # Mailtrap HTTP API
+    mailtrap_api_token: str | None = None
+    mailtrap_sandbox_id: str | None = None
+
     lead_email_to: str = "info@moinsystemsai.com"
 
     rag_top_k: int = 5
@@ -50,7 +62,8 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         """
-        Convert Railway/Postgres URLs to the asyncpg SQLAlchemy format.
+        Convert Railway/Postgres URLs to the asyncpg
+        SQLAlchemy format.
         """
 
         url = self.database_url.strip()

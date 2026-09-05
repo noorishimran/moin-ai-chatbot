@@ -1,16 +1,14 @@
 """
-6.1 Email service adapter (SMTP).
+6.1 Email service adapter using Mailtrap HTTP API.
 
-Kept isolated so the retry/error-handling logic lives in exactly one
-place, and swapping SMTP for a transactional email API later is a
-change to this file only.
+Email delivery logic is kept isolated here so the rest of the
+application does not depend on SMTP-specific implementation details.
 """
 
 import asyncio
 import logging
-from email.message import EmailMessage
 
-import aiosmtplib
+import httpx
 
 from app.core.config import get_settings
 
@@ -19,15 +17,9 @@ logger = logging.getLogger("moin_ai.email")
 settings = get_settings()
 
 
-# Maximum number of SMTP attempts for one notification.
 MAX_ATTEMPTS = 3
-
-# Wait before attempt 2 and attempt 3.
 RETRY_BACKOFF_SECONDS = [2, 5]
-
-# Prevent a single SMTP connection attempt from hanging
-# for too long.
-SMTP_TIMEOUT_SECONDS = 8
+REQUEST_TIMEOUT_SECONDS = 10
 
 
 class EmailSendResult:
@@ -50,32 +42,75 @@ async def _send_once(
     to_addr: str,
 ) -> str:
     """
-    Send one SMTP email attempt.
+    Send one email using the Mailtrap Sandbox HTTP API.
 
     Raises an exception on failure.
-    Returns a provider/message identifier on success.
+    Returns a provider message id on success.
     """
 
-    message = EmailMessage()
+    if not settings.mailtrap_api_token:
+        raise RuntimeError(
+            "MAILTRAP_API_TOKEN is not configured."
+        )
 
-    message["From"] = settings.smtp_username
-    message["To"] = to_addr
-    message["Subject"] = subject
+    if not settings.mailtrap_sandbox_id:
+        raise RuntimeError(
+            "MAILTRAP_SANDBOX_ID is not configured."
+        )
 
-    # Plain-text notification email.
-    message.set_content(body)
-
-    await aiosmtplib.send(
-        message,
-        hostname=settings.smtp_host,
-        port=settings.smtp_port,
-        username=settings.smtp_username,
-        password=settings.smtp_password,
-        start_tls=True,
-        timeout=SMTP_TIMEOUT_SECONDS,
+    url = (
+        "https://sandbox.api.mailtrap.io/api/send/"
+        f"{settings.mailtrap_sandbox_id}"
     )
 
-    return message.get("Message-Id", "sent")
+    headers = {
+        "Authorization": (
+            f"Bearer {settings.mailtrap_api_token}"
+        ),
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "from": {
+            "email": "hello@moinsystemsai.com",
+            "name": "MoinSystems AI Chatbot",
+        },
+        "to": [
+            {
+                "email": to_addr,
+            }
+        ],
+        "subject": subject,
+        "text": body,
+        "category": "Lead Notification",
+    }
+
+    timeout = httpx.Timeout(
+        REQUEST_TIMEOUT_SECONDS
+    )
+
+    async with httpx.AsyncClient(
+        timeout=timeout
+    ) as client:
+        response = await client.post(
+            url,
+            headers=headers,
+            json=payload,
+        )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    message_ids = data.get("message_ids")
+
+    if (
+        isinstance(message_ids, list)
+        and message_ids
+    ):
+        return str(message_ids[0])
+
+    return "sent"
 
 
 async def send_lead_notification(
@@ -83,11 +118,10 @@ async def send_lead_notification(
     body: str,
 ) -> EmailSendResult:
     """
-    Send the internal lead notification.
+    Send the internal lead notification through
+    the Mailtrap HTTP API.
 
-    Retries transient SMTP failures up to MAX_ATTEMPTS.
-    Returns a structured result instead of exposing SMTP
-    exceptions to the API layer.
+    Retries temporary failures up to MAX_ATTEMPTS.
     """
 
     to_addr = settings.lead_email_to
@@ -127,18 +161,12 @@ async def send_lead_notification(
             )
 
             if attempt < MAX_ATTEMPTS:
-                backoff_seconds = (
+                await asyncio.sleep(
                     RETRY_BACKOFF_SECONDS[
                         attempt - 1
                     ]
                 )
 
-                await asyncio.sleep(
-                    backoff_seconds
-                )
-
-    # Do not expose SMTP credentials/internal details
-    # through API responses or database error messages.
     sanitized_error = (
         "Email delivery failed after retries."
         if last_error
