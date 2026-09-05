@@ -39,6 +39,7 @@ export interface LeadCaptureRequest {
 export interface LeadCaptureResponse {
   lead_id: string;
   status: string;
+  email_status: "sent" | "failed";
   message: string;
 }
 
